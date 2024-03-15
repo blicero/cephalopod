@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-14 18:43:27 krylon>
+# Time-stamp: <2024-03-14 19:03:54 krylon>
 #
 # /data/code/python/cephalopod/common.py
 # created on 14. 03. 2024
@@ -60,6 +60,10 @@ class Path:
         """Return the path of the configuration file"""
         return os.path.join(self.__base, "settings.toml")
 
+    def download(self) -> str:
+        """Return the path of the download folder"""
+        return os.path.join(self.__base, "downloads")
+
 
 path: Path = Path(os.path.expanduser(f"~/.{APP_NAME.lower()}.d"))
 
@@ -78,6 +82,9 @@ def init_app() -> None:
     if not os.path.isdir(path.base()):
         print(f"Create base directory {path.base()}")
         os.mkdir(path.base())
+    if not os.path.isdir(path.download()):
+        print(f"Create download folder {path.download()}")
+        os.mkdir(path.download())
 
 
 def get_logger(name: str, terminal: bool = True) -> logging.Logger:
