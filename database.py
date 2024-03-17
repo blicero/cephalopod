@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-15 19:19:41 krylon>
+# Time-stamp: <2024-03-17 20:37:44 krylon>
 #
 # /data/code/python/cephalopod/database.py
 # created on 15. 03. 2024
@@ -20,12 +20,14 @@ cephalopod.database
 import logging
 import sqlite3
 import threading
+from datetime import datetime
 from enum import Enum, auto
 from typing import Final
 
 import krylib
 
 from cephalopod import common
+from cephalopod.cast import Feed
 
 OPEN_LOCK: Final[threading.Lock] = threading.Lock()
 
@@ -167,6 +169,78 @@ class Database:
 
     def __exit__(self, ex_type, ex_val, traceback):
         return self.db.__exit__(ex_type, ex_val, traceback)
+
+    def feed_add(self, f: Feed) -> None:
+        """Add a new feed to the database."""
+        cur = self.db.cursor()
+        cur.execute(
+            db_queries[Query.FeedAdd],
+            (f.feed_url,
+             f.homepage,
+             f.title,
+             f.description,
+             f.cover_url,
+             f.autorefresh,
+             f.folder))
+        row = cur.fetchone()
+        assert row is not None
+        assert len(row) == 1
+        assert isinstance(row[0], int)
+        f.fid = row[0]
+
+    def feed_get_all(self) -> list[Feed]:
+        """Fetch all Feeds from the database."""
+        cur = self.db.cursor()
+        cur.execute(db_queries[Query.FeedGetAll])
+        feeds: list[Feed] = []
+        for row in cur:
+            f = Feed(
+                fid=row[0],
+                feed_url=row[1],
+                homepage=row[2],
+                title=row[3],
+                description=row[4],
+                cover_url=row[5],
+                last_refresh=datetime.fromtimestamp(row[6]),
+                autorefresh=bool(row[7]),
+                folder=row[8],
+            )
+            feeds.append(f)
+        return feeds
+
+    def feed_get_autorefresh(self) -> list[Feed]:
+        """Fetch all feeds that have autorefresh set."""
+        cur = self.db.cursor()
+        cur.execute(db_queries[Query.FeedGetAutorefresh])
+        feeds: list[Feed] = []
+        for row in cur:
+            f = Feed(
+                fid=row[0],
+                feed_url=row[1],
+                homepage=row[2],
+                title=row[3],
+                description=row[4],
+                cover_url=row[5],
+                last_refresh=datetime.fromtimestamp(row[6]),
+                autorefresh=True,
+                folder=row[7],
+            )
+            feeds.append(f)
+        return feeds
+
+    def feed_set_autorefresh(self, f: Feed, refresh: bool) -> None:
+        """Set a Feed's autorefresh flag to the given value."""
+        cur = self.db.cursor()
+        cur.execute(db_queries[Query.FeedSetAutorefresh],
+                    (refresh, f.fid))
+        f.autorefresh = refresh
+
+    def feed_set_refresh(self, f: Feed, stamp: datetime) -> None:
+        """Set a Feed's refresh timestamp to the given value"""
+        cur = self.db.cursor()
+        cur.execute(db_queries[Query.FeedSetRefresh],
+                    (stamp.timestamp(), f.fid))
+        f.last_refresh = stamp
 
 # Local Variables: #
 # python-indent: 4 #

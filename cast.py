@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-15 09:43:35 krylon>
+# Time-stamp: <2024-03-17 20:20:02 krylon>
 #
 # /data/code/python/cephalopod/cast.py
 # created on 14. 03. 2024
@@ -18,17 +18,17 @@ cephalopod.cast
 """
 
 from datetime import datetime, timedelta
-from dataclass import dataclass
-from typing import Optional
+
+from dataclasses import dataclass
 
 
 @dataclass(slots=True, kw_only=True)
-class Feed:
+class Feed:  # pylint: disable-msg=R0902
     """A podcast feed"""
 
-    pid: int
+    fid: int
     feed_url: str
-    homepage: Optional[str]
+    homepage: str
     title: str
     description: str
     cover_url: str
@@ -42,7 +42,7 @@ class Feed:
 
 
 @dataclass(slots=True, kw_only=True)
-class Episode:
+class Episode:  # pylint: disable-msg=R0902
     """A podcast episode"""
 
     epid: int
