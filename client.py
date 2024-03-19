@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-17 20:40:48 krylon>
+# Time-stamp: <2024-03-18 14:48:38 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -41,12 +41,17 @@ class Client:  # pylint: disable-msg=R0903
     def feed_add(self, url: str) -> Feed:
         """Add a new feed."""
         try:
+            self.log.info("Add feed %s", url)
             d = feedparser.parse(url)
             f = d['feed']
             folder = os.path.join(
                 common.path.download(),
                 f['title']
             )
+
+            self.log.debug("Episodes for %s will be saved in %s",
+                           f['title'],
+                           folder)
 
             feed = Feed(
                 fid=0,
