@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-19 15:14:53 krylon>
+# Time-stamp: <2024-03-19 20:43:53 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -20,8 +20,8 @@ cephalopod.client
 import logging
 import os
 from datetime import datetime
-from queue import SimpleQueue
-from threading import local
+from queue import Empty, SimpleQueue
+from threading import Lock, Thread, local
 
 import feedparser
 
@@ -34,16 +34,31 @@ class Client:  # pylint: disable-msg=R0903
     """Client handles the fetching and parsing of RSS feeds."""
 
     __slots__ = [
+        "worker_cnt",
+        "workers",
+        "lock",
+        "active",
         "log",
         "pool",
         "fetch_queue",
     ]
 
+    worker_cnt: int
+    workers: list[Thread]
+    lock: Lock
+    active: bool
     log: logging.Logger
     pool: local
     fetch_queue: SimpleQueue
 
-    def __init__(self):
+    def __init__(self, worker_cnt: int = 0):
+        if worker_cnt == 0:
+            worker_cnt = os.cpu_count()
+
+        self.worker_cnt = worker_cnt
+        self.workers = []
+        self.lock = Lock()
+        self.active = False
         self.log = common.get_logger("Client")
         self.pool = local()
         self.fetch_queue = SimpleQueue
@@ -56,6 +71,16 @@ class Client:  # pylint: disable-msg=R0903
             db = Database()  # pylint: disable-msg=C0103
             self.pool.db = db
             return db
+
+    def is_active(self) -> bool:
+        """Return the Client's Active flag"""
+        with self.lock:
+            return self.active
+
+    def stop(self) -> None:
+        """Clear the Client's active flag"""
+        with self.lock:
+            self.active = False
 
     def feed_add(self, url: str) -> Feed:
         """Add a new feed."""
@@ -96,6 +121,15 @@ class Client:  # pylint: disable-msg=R0903
                            url,
                            e)
             raise
+
+    def _fetch_worker(self) -> None:
+        db = self.get_database()
+        while self.is_active():
+            try:
+                feed: Feed = self.fetch_queue.get(True, 2)
+                d = feedparser.parse(feed.feed_url)
+            except Empty:
+                continue
 
 # Local Variables: #
 # python-indent: 4 #
