@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-18 14:48:38 krylon>
+# Time-stamp: <2024-03-19 15:14:53 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -20,6 +20,8 @@ cephalopod.client
 import logging
 import os
 from datetime import datetime
+from queue import SimpleQueue
+from threading import local
 
 import feedparser
 
@@ -31,12 +33,29 @@ from cephalopod.database import Database
 class Client:  # pylint: disable-msg=R0903
     """Client handles the fetching and parsing of RSS feeds."""
 
+    __slots__ = [
+        "log",
+        "pool",
+        "fetch_queue",
+    ]
+
     log: logging.Logger
-    db: Database
+    pool: local
+    fetch_queue: SimpleQueue
 
     def __init__(self):
         self.log = common.get_logger("Client")
-        self.db = Database()
+        self.pool = local()
+        self.fetch_queue = SimpleQueue
+
+    def get_database(self) -> Database:
+        """Get the Database instance for the calling thread."""
+        try:
+            return self.pool.db
+        except AttributeError:
+            db = Database()  # pylint: disable-msg=C0103
+            self.pool.db = db
+            return db
 
     def feed_add(self, url: str) -> Feed:
         """Add a new feed."""
@@ -65,8 +84,10 @@ class Client:  # pylint: disable-msg=R0903
                 folder=folder,
             )
 
-            with self.db:
-                self.db.feed_add(feed)
+            db = self.get_database()
+
+            with db:
+                db.feed_add(feed)
                 assert feed.fid != 0
 
             return feed
