@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-19 20:43:53 krylon>
+# Time-stamp: <2024-03-20 22:35:20 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -53,7 +53,7 @@ class Client:  # pylint: disable-msg=R0903
 
     def __init__(self, worker_cnt: int = 0):
         if worker_cnt == 0:
-            worker_cnt = os.cpu_count()
+            worker_cnt = os.cpu_count() or 1
 
         self.worker_cnt = worker_cnt
         self.workers = []
@@ -61,7 +61,7 @@ class Client:  # pylint: disable-msg=R0903
         self.active = False
         self.log = common.get_logger("Client")
         self.pool = local()
-        self.fetch_queue = SimpleQueue
+        self.fetch_queue = SimpleQueue()
 
     def get_database(self) -> Database:
         """Get the Database instance for the calling thread."""
@@ -123,11 +123,12 @@ class Client:  # pylint: disable-msg=R0903
             raise
 
     def _fetch_worker(self) -> None:
-        db = self.get_database()
+        # db = self.get_database()
         while self.is_active():
             try:
-                feed: Feed = self.fetch_queue.get(True, 2)
-                d = feedparser.parse(feed.feed_url)
+                # feed: Feed = self.fetch_queue.get(True, 2)
+                # d = feedparser.parse(feed.feed_url)
+                pass
             except Empty:
                 continue
 
