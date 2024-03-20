@@ -1,5 +1,5 @@
 # -*- mode: org; fill-column: 78; -*-
-# Time-stamp: <2024-03-17 21:30:48 krylon>
+# Time-stamp: <2024-03-20 22:50:40 krylon>
 #
 #+TAGS: internals(i) ui(u) bug(b) feature(f)
 #+TAGS: database(d) design(e), meditation(m)
@@ -12,14 +12,14 @@
   A podcatcher to make me happy.
 ** Clocktable
    #+BEGIN: clocktable :scope file :maxlevel 255 :emphasize t
-   #+CAPTION: Clock summary at [2024-03-17 So 21:30]
+   #+CAPTION: Clock summary at [2024-03-20 Mi 22:50]
    | Headline               | Time   |        |      |
    |------------------------+--------+--------+------|
-   | *Total time*           | *5:00* |        |      |
+   | *Total time*           | *8:06* |        |      |
    |------------------------+--------+--------+------|
-   | *Cephalopod*           | *5:00* |        |      |
-   | \_  /Components [0/0]/ |        | /5:00/ |      |
-   | \_    Database [0/0]   |        |        | 4:01 |
+   | *Cephalopod*           | *8:06* |        |      |
+   | \_  /Components [0/0]/ |        | /8:06/ |      |
+   | \_    Database [0/0]   |        |        | 7:07 |
    | \_    Catcher [0/0]    |        |        | 0:59 |
    #+END:
 ** Features [0/0]
@@ -38,6 +38,8 @@
     :VISIBILITY: children
     :END:
     :LOGBOOK:
+    CLOCK: [2024-03-20 Mi 19:57]--[2024-03-20 Mi 22:50] =>  2:53
+    CLOCK: [2024-03-20 Mi 18:33]--[2024-03-20 Mi 18:46] =>  0:13
     CLOCK: [2024-03-17 So 20:18]--[2024-03-17 So 21:29] =>  1:11
     CLOCK: [2024-03-16 Sa 16:48]--[2024-03-16 Sa 17:45] =>  0:57
     CLOCK: [2024-03-15 Fr 18:34]--[2024-03-15 Fr 19:27] =>  0:53
