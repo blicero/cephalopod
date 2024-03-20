@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-19 14:55:34 krylon>
+# Time-stamp: <2024-03-20 22:36:36 krylon>
 #
 # /home/krylon/code/python/cephalopod/test_database.py
 # created on 19. 03. 2024
@@ -21,9 +21,10 @@ import os
 import unittest
 from datetime import datetime
 
+from krylib import isdir
+
 from cephalopod import common, database
 from cephalopod.cast import Feed
-from krylib import isdir
 
 TEST_ROOT: str = "/tmp/"
 
@@ -87,14 +88,13 @@ class DatabaseTest(unittest.TestCase):
             try:
                 with db:
                     db.feed_add(c[0])
-            except Exception as e:
+            except Exception as e:  # pylint: disable-msg=W0718
                 if not c[1]:
-                    self.fail("Unexpected exception adding feed %s: %s" %
-                              (c[0].title, e))
+                    self.fail(f"Unexpected exception adding feed {c[0].title}: {e}")
             else:
                 if c[1]:
-                    self.fail("Adding podcast %s to database should not have worked!" %
-                              c[0].title)
+                    self.fail(f"Adding podcast {c[0].title} to database should not have worked!")
+
 
 # Local Variables: #
 # python-indent: 4 #
