@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-17 20:37:44 krylon>
+# Time-stamp: <2024-03-20 22:34:23 krylon>
 #
 # /data/code/python/cephalopod/database.py
 # created on 15. 03. 2024
@@ -22,12 +22,12 @@ import sqlite3
 import threading
 from datetime import datetime
 from enum import Enum, auto
-from typing import Final
+from typing import Final, Union
 
 import krylib
 
 from cephalopod import common
-from cephalopod.cast import Feed
+from cephalopod.cast import Episode, Feed
 
 OPEN_LOCK: Final[threading.Lock] = threading.Lock()
 
@@ -52,7 +52,7 @@ CREATE TABLE episode (
     id INTEGER PRIMARY KEY,
     feed_id INTEGER NOT NULL,
     title TEXT NOT NULL,
-    url TEXT NOT NULL,
+    url TEXT UNIQUE NOT NULL,
     published INTEGER NOT NULL DEFAULT 0,
     link TEXT NOT NULL DEFAULT '',
     mime TEXT NOT NULL DEFAULT 'application/octet-stream',
@@ -81,6 +81,10 @@ class Query(Enum):
     FeedSetAutorefresh = auto()
     FeedSetRefresh = auto()
     FeedDelete = auto()
+    EpisodeAdd = auto()
+    EpisodeGetByFeed = auto()
+    EpisodeSetPos = auto()
+    EpisodeSetKeep = auto()
 
 
 db_queries: Final[dict[Query, str]] = {
@@ -120,6 +124,30 @@ UPDATE feed SET last_refresh = ? WHERE id = ?
     """,
     Query.FeedSetAutorefresh: "UPDATE feed SET autorefresh = ? WHERE id = ?",
     Query.FeedDelete: "DELETE FROM feed WHERE id = ?",
+    Query.EpisodeAdd: """
+INSERT INTO episode (feed_id, title, url, published, link, mime, path, description)
+             VALUES (      ?,          ?,         ?,    ?,    ?,    ?,           ?)
+RETURNING id
+    """,
+    Query.EpisodeGetByFeed: """
+SELECT
+    id,
+    title,
+    url,
+    published,
+    link,
+    mime,
+    cur_pos,
+    finished,
+    path,
+    keep,
+    description,
+FROM episode
+WHERE feed_id = ?
+ORDER BY published DESC
+    """,
+    Query.EpisodeSetKeep: "UPDATE episode SET keep = ? WHERE id = ?",
+    Query.EpisodeSetPos: "UPDATE episode SET cur_pos = ? WHERE id = ?",
 }
 
 
@@ -241,6 +269,51 @@ class Database:
         cur.execute(db_queries[Query.FeedSetRefresh],
                     (stamp.timestamp(), f.fid))
         f.last_refresh = stamp
+
+    def episode_add(self, e: Episode) -> None:
+        """Add a new Episode to the database."""
+        cur: Final[sqlite3.Cursor] = self.db.cursor()
+        cur.execute(db_queries[Query.EpisodeAdd],
+                    (e.feed_id,
+                     e.title,
+                     e.url,
+                     e.published.timestamp(),
+                     e.mime_type,
+                     e.path,
+                     e.description))
+        row = cur.fetchone()
+        e.epid = row[0]
+
+    def episode_get_by_feed(self, f: Union[Feed, int]) -> list[Episode]:
+        """Get all episodes for the given Feed."""
+        fid: int = 0
+        if isinstance(f, Feed):
+            fid = f.fid
+        else:
+            fid = f
+
+        cur: Final[sqlite3.Cursor] = self.db.cursor()
+        cur.execute(db_queries[Query.EpisodeGetByFeed], (fid, ))
+        episodes: list[Episode] = []
+        for row in cur:
+            e = Episode(
+                epid=row[0],
+                feed_id=fid,
+                title=row[1],
+                url=row[2],
+                published=datetime.fromtimestamp(row[3]),
+                link=row[4],
+                mime_type=row[5],
+                cur_pos=row[6],
+                finished=row[7],
+                path=row[8],
+                keep=row[9],
+                description=row[10],
+            )
+            episodes.append(e)
+
+        return episodes
+
 
 # Local Variables: #
 # python-indent: 4 #
