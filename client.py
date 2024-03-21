@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-20 22:35:20 krylon>
+# Time-stamp: <2024-03-21 20:16:55 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -17,6 +17,7 @@ cephalopod.client
 (c) 2024 Benjamin Walkenhorst
 """
 
+import calendar
 import logging
 import os
 from datetime import datetime
@@ -26,7 +27,7 @@ from threading import Lock, Thread, local
 import feedparser
 
 from cephalopod import common
-from cephalopod.cast import Feed
+from cephalopod.cast import Episode, Feed
 from cephalopod.database import Database
 
 
@@ -49,7 +50,7 @@ class Client:  # pylint: disable-msg=R0903
     active: bool
     log: logging.Logger
     pool: local
-    fetch_queue: SimpleQueue
+    fetch_queue: SimpleQueue[Feed]
 
     def __init__(self, worker_cnt: int = 0):
         if worker_cnt == 0:
@@ -123,12 +124,37 @@ class Client:  # pylint: disable-msg=R0903
             raise
 
     def _fetch_worker(self) -> None:
-        # db = self.get_database()
-        while self.is_active():
+        db = self.get_database()
+        while self.is_active():  # pylint: disable-msg=R1702
             try:
-                # feed: Feed = self.fetch_queue.get(True, 2)
-                # d = feedparser.parse(feed.feed_url)
-                pass
+                feed: Feed = self.fetch_queue.get(True, 2)
+                d = feedparser.parse(feed.feed_url)
+                episodes_old: list[Episode] = db.episode_get_by_feed(feed)
+                urls: set[str] = {x.url for x in episodes_old}
+
+                for entry in d['entries']:
+                    for lnk in entry['links']:
+                        if lnk['rel'] == 'enclosure':
+                            if not lnk['href'] in urls:
+                                epoch = calendar.timegm(entry['published_parsed'])
+                                stamp = datetime.fromtimestamp(epoch)
+                                ep = Episode(
+                                    epid=0,
+                                    feed_id=feed.fid,
+                                    title=entry['title'],
+                                    url=lnk['href'],
+                                    published=stamp,
+                                    link='',
+                                    mime_type=lnk['type'],
+                                    cur_pos=0,
+                                    finished=False,
+                                    path='',
+                                    keep=False,
+                                    description=entry['summary'],
+                                )
+                                with db:
+                                    db.episode_add(ep)
+                            break
             except Empty:
                 continue
 
