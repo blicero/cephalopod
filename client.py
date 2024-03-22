@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-22 21:11:39 krylon>
+# Time-stamp: <2024-03-22 22:05:36 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -21,6 +21,7 @@ import calendar
 import logging
 import os
 from datetime import datetime
+from mimetypes import guess_extension
 from queue import Empty, SimpleQueue
 from threading import Lock, Thread, local
 
@@ -29,16 +30,6 @@ import feedparser
 from cephalopod import common
 from cephalopod.cast import Episode, Feed
 from cephalopod.database import Database
-
-
-def suffix_for_mime(mime_type: str) -> str:
-    """Attempt to determine the appropriate filename extension for the given
-    MIME type"""
-    match mime_type:
-        case "audio/mpeg":
-            return ".mp3"
-        case _:
-            raise ValueError(f"No known filename suffix for {mime_type}")
 
 
 class Client:  # pylint: disable-msg=R0903
@@ -116,7 +107,7 @@ class Client:  # pylint: disable-msg=R0903
                 description=f['description'],
                 cover_url=f['image']['href'],
                 last_refresh=datetime.fromtimestamp(0),
-                autorefresh=False,
+                autorefresh=True,
                 folder=folder,
             )
 
@@ -153,7 +144,7 @@ class Client:  # pylint: disable-msg=R0903
             for lnk in entry['links']:
                 if lnk['rel'] == 'enclosure':
                     if not lnk['href'] in urls:
-                        filename = entry['title'] + suffix_for_mime(lnk['type'])
+                        filename = entry['title'] + guess_extension(lnk['type'])
                         path = os.path.join(feed.folder, filename)
                         epoch = calendar.timegm(entry['published_parsed'])
                         stamp = datetime.fromtimestamp(epoch)
