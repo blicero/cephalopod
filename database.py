@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-22 21:04:46 krylon>
+# Time-stamp: <2024-03-22 22:00:31 krylon>
 #
 # /data/code/python/cephalopod/database.py
 # created on 15. 03. 2024
@@ -263,7 +263,7 @@ class Database:
                     (refresh, f.fid))
         f.autorefresh = refresh
 
-    def feed_set_refresh(self, f: Feed, stamp: datetime) -> None:
+    def feed_set_timestamp(self, f: Feed, stamp: datetime) -> None:
         """Set a Feed's refresh timestamp to the given value"""
         cur = self.db.cursor()
         cur.execute(db_queries[Query.FeedSetRefresh],
