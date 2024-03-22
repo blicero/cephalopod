@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-21 20:16:55 krylon>
+# Time-stamp: <2024-03-22 21:11:39 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -29,6 +29,16 @@ import feedparser
 from cephalopod import common
 from cephalopod.cast import Episode, Feed
 from cephalopod.database import Database
+
+
+def suffix_for_mime(mime_type: str) -> str:
+    """Attempt to determine the appropriate filename extension for the given
+    MIME type"""
+    match mime_type:
+        case "audio/mpeg":
+            return ".mp3"
+        case _:
+            raise ValueError(f"No known filename suffix for {mime_type}")
 
 
 class Client:  # pylint: disable-msg=R0903
@@ -124,39 +134,50 @@ class Client:  # pylint: disable-msg=R0903
             raise
 
     def _fetch_worker(self) -> None:
-        db = self.get_database()
-        while self.is_active():  # pylint: disable-msg=R1702
+        while self.is_active():
             try:
                 feed: Feed = self.fetch_queue.get(True, 2)
                 d = feedparser.parse(feed.feed_url)
-                episodes_old: list[Episode] = db.episode_get_by_feed(feed)
-                urls: set[str] = {x.url for x in episodes_old}
-
-                for entry in d['entries']:
-                    for lnk in entry['links']:
-                        if lnk['rel'] == 'enclosure':
-                            if not lnk['href'] in urls:
-                                epoch = calendar.timegm(entry['published_parsed'])
-                                stamp = datetime.fromtimestamp(epoch)
-                                ep = Episode(
-                                    epid=0,
-                                    feed_id=feed.fid,
-                                    title=entry['title'],
-                                    url=lnk['href'],
-                                    published=stamp,
-                                    link='',
-                                    mime_type=lnk['type'],
-                                    cur_pos=0,
-                                    finished=False,
-                                    path='',
-                                    keep=False,
-                                    description=entry['summary'],
-                                )
-                                with db:
-                                    db.episode_add(ep)
-                            break
+                self.process_feed(feed, d)
             except Empty:
                 continue
+
+    def process_feed(self, feed: Feed, d) -> list[Episode]:
+        """Process the Feed data once it is fetched and parsed."""
+        db = self.get_database()
+        episodes_old: list[Episode] = db.episode_get_by_feed(feed)
+        urls: set[str] = {x.url for x in episodes_old}
+        episodes_new: list[Episode] = []
+
+        for entry in d['entries']:
+            for lnk in entry['links']:
+                if lnk['rel'] == 'enclosure':
+                    if not lnk['href'] in urls:
+                        filename = entry['title'] + suffix_for_mime(lnk['type'])
+                        path = os.path.join(feed.folder, filename)
+                        epoch = calendar.timegm(entry['published_parsed'])
+                        stamp = datetime.fromtimestamp(epoch)
+                        ep = Episode(
+                            epid=0,
+                            feed_id=feed.fid,
+                            title=entry['title'],
+                            url=lnk['href'],
+                            published=stamp,
+                            link='',
+                            mime_type=lnk['type'],
+                            cur_pos=0,
+                            finished=False,
+                            path=path,
+                            keep=False,
+                            description=entry['summary'],
+                        )
+                        with db:
+                            db.episode_add(ep)
+                            episodes_new.append(ep)
+                    break
+
+        return episodes_new
+
 
 # Local Variables: #
 # python-indent: 4 #
