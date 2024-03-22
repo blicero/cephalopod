@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-22 22:05:36 krylon>
+# Time-stamp: <2024-03-22 23:04:16 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -20,16 +20,19 @@ cephalopod.client
 import calendar
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from mimetypes import guess_extension
 from queue import Empty, SimpleQueue
 from threading import Lock, Thread, local
+from typing import Final
 
 import feedparser
 
 from cephalopod import common
 from cephalopod.cast import Episode, Feed
 from cephalopod.database import Database
+
+refresh_interval: Final[timedelta] = timedelta(minutes=60)
 
 
 class Client:  # pylint: disable-msg=R0903
@@ -123,6 +126,24 @@ class Client:  # pylint: disable-msg=R0903
                            url,
                            e)
             raise
+
+    def refresh(self) -> None:
+        """Refresh all the podcast feeds that need a refresh."""
+        with self.lock:
+            if self.active:
+                self.log.error("Refresh is currently active.")
+                return
+            self.active = True
+
+        for _i in range(self.worker_cnt):
+            t = Thread(target=self._fetch_worker, daemon=True)
+            t.start()
+            self.workers.append(t)
+
+        db = self.get_database()
+        feeds = db.feed_get_autorefresh()
+        for f in feeds:
+            self.fetch_queue.put(f)
 
     def _fetch_worker(self) -> None:
         while self.is_active():
