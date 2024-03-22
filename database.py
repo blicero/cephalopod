@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-20 22:34:23 krylon>
+# Time-stamp: <2024-03-22 21:04:46 krylon>
 #
 # /data/code/python/cephalopod/database.py
 # created on 15. 03. 2024
@@ -126,7 +126,7 @@ UPDATE feed SET last_refresh = ? WHERE id = ?
     Query.FeedDelete: "DELETE FROM feed WHERE id = ?",
     Query.EpisodeAdd: """
 INSERT INTO episode (feed_id, title, url, published, link, mime, path, description)
-             VALUES (      ?,          ?,         ?,    ?,    ?,    ?,           ?)
+             VALUES (      ?,     ?,   ?,         ?,    ?,    ?,    ?,           ?)
 RETURNING id
     """,
     Query.EpisodeGetByFeed: """
@@ -141,7 +141,7 @@ SELECT
     finished,
     path,
     keep,
-    description,
+    description
 FROM episode
 WHERE feed_id = ?
 ORDER BY published DESC
@@ -278,6 +278,7 @@ class Database:
                      e.title,
                      e.url,
                      e.published.timestamp(),
+                     e.link,
                      e.mime_type,
                      e.path,
                      e.description))
