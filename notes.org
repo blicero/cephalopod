@@ -1,5 +1,5 @@
 # -*- mode: org; fill-column: 78; -*-
-# Time-stamp: <2024-03-23 16:18:17 krylon>
+# Time-stamp: <2024-03-23 22:21:28 krylon>
 #
 #+TAGS: internals(i) ui(u) bug(b) feature(f)
 #+TAGS: database(d) design(e), meditation(m)
@@ -12,21 +12,23 @@
   A podcatcher to make me happy.
 ** Clocktable
    #+BEGIN: clocktable :scope file :maxlevel 255 :emphasize t
-   #+CAPTION: Clock summary at [2024-03-23 Sa 16:18]
+   #+CAPTION: Clock summary at [2024-03-23 Sa 22:21]
    | Headline               | Time    |         |      |
    |------------------------+---------+---------+------|
-   | *Total time*           | *11:35* |         |      |
+   | *Total time*           | *15:12* |         |      |
    |------------------------+---------+---------+------|
-   | *Cephalopod*           | *11:35* |         |      |
-   | \_  /Components [0/0]/ |         | /11:35/ |      |
+   | *Cephalopod*           | *15:12* |         |      |
+   | \_  /Components [0/0]/ |         | /15:12/ |      |
    | \_    Database [0/0]   |         |         | 7:07 |
    | \_    Catcher [0/0]    |         |         | 4:28 |
+   | \_    UI [0/0]         |         |         | 3:37 |
    #+END:
 ** Features [0/0]
    :PROPERTIES:
    :COOKIE_DATA: todo recursive
    :VISIBILITY: children
    :END:
+*** Persistent listening queue
 ** Components [0/0]
    :PROPERTIES:
    :COOKIE_DATA: todo recursive
@@ -57,6 +59,16 @@
     CLOCK: [2024-03-22 Fr 16:03]--[2024-03-22 Fr 16:14] =>  0:11
     CLOCK: [2024-03-16 Sa 18:35]--[2024-03-16 Sa 19:34] =>  0:59
     :END:
+*** UI [0/0]                                                               :ui:
+    :PROPERTIES:
+    :COOKIE_DATA: todo recursive
+    :VISIBILITY: children
+    :END:
+    :LOGBOOK:
+    CLOCK: [2024-03-23 Sa 17:58]--[2024-03-23 Sa 21:35] =>  3:37
+    :END:
+    [2024-03-23 Sa 16:36] I think I have what I need to start working on the
+    User interface.
 ** Bugs [0/0]
    :PROPERTIES:
    :COOKIE_DATA: todo recursive
