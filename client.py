@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-22 23:04:16 krylon>
+# Time-stamp: <2024-03-23 16:17:25 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -20,6 +20,7 @@ cephalopod.client
 import calendar
 import logging
 import os
+import time
 from datetime import datetime, timedelta
 from mimetypes import guess_extension
 from queue import Empty, SimpleQueue
@@ -135,6 +136,9 @@ class Client:  # pylint: disable-msg=R0903
                 return
             self.active = True
 
+        self.log.info("Refreshing podcast feeds")
+
+        self.log.debug("Starting worker threads.")
         for _i in range(self.worker_cnt):
             t = Thread(target=self._fetch_worker, daemon=True)
             t.start()
@@ -142,8 +146,19 @@ class Client:  # pylint: disable-msg=R0903
 
         db = self.get_database()
         feeds = db.feed_get_autorefresh()
+        self.log.debug("Ready to fetch %d feeds", len(feeds))
         for f in feeds:
             self.fetch_queue.put(f)
+
+        while not self.fetch_queue.empty():
+            time.sleep(1)
+
+        self.log.debug("Shutting down worker threads")
+        self.stop()
+        for w in self.workers:
+            w.join()
+        self.workers.clear()
+        self.log.debug("Refresh is done.")
 
     def _fetch_worker(self) -> None:
         while self.is_active():
@@ -156,6 +171,7 @@ class Client:  # pylint: disable-msg=R0903
 
     def process_feed(self, feed: Feed, d) -> list[Episode]:
         """Process the Feed data once it is fetched and parsed."""
+        now = datetime.now()
         db = self.get_database()
         episodes_old: list[Episode] = db.episode_get_by_feed(feed)
         urls: set[str] = {x.url for x in episodes_old}
@@ -184,10 +200,14 @@ class Client:  # pylint: disable-msg=R0903
                             description=entry['summary'],
                         )
                         with db:
-                            db.episode_add(ep)
-                            episodes_new.append(ep)
+                            if db.episode_add(ep):
+                                episodes_new.append(ep)
+                            else:
+                                self.log.error("Failed to add episode %s", ep.title)
                     break
 
+        with db:
+            db.feed_set_timestamp(feed, now)
         return episodes_new
 
 
