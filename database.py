@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-22 22:00:31 krylon>
+# Time-stamp: <2024-03-23 15:58:52 krylon>
 #
 # /data/code/python/cephalopod/database.py
 # created on 15. 03. 2024
@@ -267,23 +267,33 @@ class Database:
         """Set a Feed's refresh timestamp to the given value"""
         cur = self.db.cursor()
         cur.execute(db_queries[Query.FeedSetRefresh],
-                    (stamp.timestamp(), f.fid))
+                    (int(stamp.timestamp()), f.fid))
         f.last_refresh = stamp
 
-    def episode_add(self, e: Episode) -> None:
+    def episode_add(self, e: Episode) -> bool:
         """Add a new Episode to the database."""
-        cur: Final[sqlite3.Cursor] = self.db.cursor()
-        cur.execute(db_queries[Query.EpisodeAdd],
-                    (e.feed_id,
-                     e.title,
-                     e.url,
-                     e.published.timestamp(),
-                     e.link,
-                     e.mime_type,
-                     e.path,
-                     e.description))
-        row = cur.fetchone()
-        e.epid = row[0]
+        try:  # pylint: disable-msg=R1705
+            cur: Final[sqlite3.Cursor] = self.db.cursor()
+            cur.execute(db_queries[Query.EpisodeAdd],
+                        (e.feed_id,
+                         e.title,
+                         e.url,
+                         e.published.timestamp(),
+                         e.link,
+                         e.mime_type,
+                         e.path,
+                         e.description))
+            row = cur.fetchone()
+        except sqlite3.IntegrityError as err:
+            self.log.error("Cannot add episode %s for podcast %d: %s\n\t%s",
+                           e.title,
+                           e.feed_id,
+                           err,
+                           e.path)
+            return False
+        else:
+            e.epid = row[0]
+            return True
 
     def episode_get_by_feed(self, f: Union[Feed, int]) -> list[Episode]:
         """Get all episodes for the given Feed."""
