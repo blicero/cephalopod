@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-25 15:46:51 krylon>
+# Time-stamp: <2024-03-25 19:39:09 krylon>
 #
 # /data/code/python/cephalopod/database.py
 # created on 15. 03. 2024
@@ -83,6 +83,7 @@ class Query(Enum):
     FeedSetRefresh = auto()
     FeedDelete = auto()
     EpisodeAdd = auto()
+    EpisodeGetAll = auto()
     EpisodeGetByFeed = auto()
     EpisodeSetPos = auto()
     EpisodeSetKeep = auto()
@@ -129,6 +130,24 @@ UPDATE feed SET last_refresh = ? WHERE id = ?
 INSERT INTO episode (feed_id, number, title, url, published, link, mime, path, description)
              VALUES (      ?,      ?,     ?,   ?,         ?,    ?,    ?,    ?,           ?)
 RETURNING id
+    """,
+    Query.EpisodeGetAll: """
+SELECT
+    id,
+    feed_id,
+    title,
+    number,
+    url,
+    published,
+    link,
+    mime,
+    cur_pos,
+    finished,
+    path,
+    keep,
+    description
+FROM episode
+ORDER BY published DESC
     """,
     Query.EpisodeGetByFeed: """
 SELECT
@@ -297,6 +316,31 @@ class Database:
         else:
             e.epid = row[0]
             return True
+
+    def episode_get_all(self) -> list[Episode]:
+        """Fetch all Episodes"""
+        cur: Final[sqlite3.Cursor] = self.db.cursor()
+        cur.execute(db_queries[Query.EpisodeGetAll])
+        episodes: list[Episode] = []
+        for row in cur:
+            e = Episode(
+                epid=row[0],
+                feed_id=row[1],
+                number=row[2],
+                title=row[3],
+                url=row[4],
+                published=datetime.fromtimestamp(row[5]),
+                link=row[6],
+                mime_type=row[7],
+                cur_pos=row[8],
+                finished=row[9],
+                path=row[10],
+                keep=row[11],
+                description=row[12],
+            )
+            episodes.append(e)
+
+        return episodes
 
     def episode_get_by_feed(self, f: Union[Feed, int]) -> list[Episode]:
         """Get all episodes for the given Feed."""
