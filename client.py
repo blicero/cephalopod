@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-23 16:17:25 krylon>
+# Time-stamp: <2024-03-25 15:48:42 krylon>
 #
 # /data/code/python/cephalopod/client.py
 # created on 16. 03. 2024
@@ -187,6 +187,7 @@ class Client:  # pylint: disable-msg=R0903
                         stamp = datetime.fromtimestamp(epoch)
                         ep = Episode(
                             epid=0,
+                            number=0,
                             feed_id=feed.fid,
                             title=entry['title'],
                             url=lnk['href'],

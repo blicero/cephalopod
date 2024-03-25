@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-17 20:20:02 krylon>
+# Time-stamp: <2024-03-25 15:44:53 krylon>
 #
 # /data/code/python/cephalopod/cast.py
 # created on 14. 03. 2024
@@ -47,6 +47,7 @@ class Episode:  # pylint: disable-msg=R0902
 
     epid: int
     feed_id: int
+    number: int
     title: str
     url: str
     published: datetime

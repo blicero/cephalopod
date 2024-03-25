@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-23 15:58:52 krylon>
+# Time-stamp: <2024-03-25 15:46:51 krylon>
 #
 # /data/code/python/cephalopod/database.py
 # created on 15. 03. 2024
@@ -51,6 +51,7 @@ CREATE TABLE feed (
 CREATE TABLE episode (
     id INTEGER PRIMARY KEY,
     feed_id INTEGER NOT NULL,
+    number INTEGER NOT NULL DEFAULT 0,
     title TEXT NOT NULL,
     url TEXT UNIQUE NOT NULL,
     published INTEGER NOT NULL DEFAULT 0,
@@ -125,14 +126,15 @@ UPDATE feed SET last_refresh = ? WHERE id = ?
     Query.FeedSetAutorefresh: "UPDATE feed SET autorefresh = ? WHERE id = ?",
     Query.FeedDelete: "DELETE FROM feed WHERE id = ?",
     Query.EpisodeAdd: """
-INSERT INTO episode (feed_id, title, url, published, link, mime, path, description)
-             VALUES (      ?,     ?,   ?,         ?,    ?,    ?,    ?,           ?)
+INSERT INTO episode (feed_id, number, title, url, published, link, mime, path, description)
+             VALUES (      ?,      ?,     ?,   ?,         ?,    ?,    ?,    ?,           ?)
 RETURNING id
     """,
     Query.EpisodeGetByFeed: """
 SELECT
     id,
     title,
+    number,
     url,
     published,
     link,
@@ -276,6 +278,7 @@ class Database:
             cur: Final[sqlite3.Cursor] = self.db.cursor()
             cur.execute(db_queries[Query.EpisodeAdd],
                         (e.feed_id,
+                         e.number,
                          e.title,
                          e.url,
                          e.published.timestamp(),
@@ -310,16 +313,17 @@ class Database:
             e = Episode(
                 epid=row[0],
                 feed_id=fid,
-                title=row[1],
-                url=row[2],
-                published=datetime.fromtimestamp(row[3]),
-                link=row[4],
-                mime_type=row[5],
-                cur_pos=row[6],
-                finished=row[7],
-                path=row[8],
-                keep=row[9],
-                description=row[10],
+                number=row[1],
+                title=row[2],
+                url=row[3],
+                published=datetime.fromtimestamp(row[4]),
+                link=row[5],
+                mime_type=row[6],
+                cur_pos=row[7],
+                finished=row[8],
+                path=row[9],
+                keep=row[10],
+                description=row[11],
             )
             episodes.append(e)
 
