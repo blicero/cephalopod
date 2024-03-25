@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-25 16:09:16 krylon>
+# Time-stamp: <2024-03-25 19:57:02 krylon>
 #
 # /data/code/python/cephalopod/ui.py
 # created on 23. 03. 2024
@@ -23,6 +23,8 @@ from typing import Final
 import gi  # type: ignore
 
 from cephalopod import common
+from cephalopod.cast import Episode, Feed
+from cephalopod.database import Database
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
@@ -36,14 +38,13 @@ from gi.repository import \
 from gi.repository import \
     Gtk as gtk  # noqa: E402 pylint: disable-msg=C0413,C0411 # type: ignore
 
-
 ICON_NAME_DEFAULT: Final[str] = ''
 
 
-class GUI:
+class GUI:  # pylint: disable-msg=R0902,R0903
     """A graphical user interface, implemented using Gtk+ 3"""
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:  # pylint: disable-msg=R0915
         self.log = common.get_logger("GUI")
         self.lock: Final[Lock] = Lock()
         self.local = local()
@@ -63,9 +64,15 @@ class GUI:
         self.mbox: gtk.Box = gtk.Box(orientation=gtk.Orientation.VERTICAL)
 
         self.notebook: gtk.Notebook = gtk.Notebook.new()
+        self.nb_label_feed = gtk.Label.new("Feeds")
+        self.nb_label_episode = gtk.Label.new("Episodes")
 
         self.sw_feeds = gtk.ScrolledWindow()
         self.sw_episodes = gtk.ScrolledWindow()
+
+        for sw in (self.sw_feeds, self.sw_episodes):
+            sw.set_vexpand(True)
+            sw.set_hexpand(True)
 
         feed_columns: Final[list[tuple[int, str]]] = [
             (0, "ID"),
@@ -112,6 +119,8 @@ class GUI:
             str,  # Playback position
         )
 
+        self.episode_view = gtk.TreeView(model=self.episode_store)
+
         for c in episode_columns:
             col = gtk.TreeViewColumn(
                 c[1],
@@ -133,18 +142,116 @@ class GUI:
         self.fm_add_item = gtk.MenuItem.new_with_mnemonic("_Add Feed")
         self.fm_quit_item = gtk.MenuItem.new_with_mnemonic("_Quit")
 
-        self.feed_menu_item(self.fm_add_item)
+        self.feed_menu.add(self.fm_add_item)
         self.feed_menu.add(self.fm_quit_item)
+
+        self.menubar.add(self.feed_menu_item)
 
         # Assemble UI
 
+        self.sw_feeds.add(self.feed_view)
+        self.sw_episodes.add(self.episode_view)
+
+        self.notebook.append_page(self.sw_feeds, self.nb_label_feed)
+        self.notebook.append_page(self.sw_episodes, self.nb_label_episode)
+
+        self.mbox.pack_start(self.menubar, False, True, 0)
+        self.mbox.pack_start(self.notebook, False, True, 0)
+
+        self.win.add(self.mbox)
+
+        self.win.show_all()
+
         # Register signal handlers
+
+        self.win.connect("destroy", self._quit)
+        self.fm_quit_item.connect("activate", self._quit)
 
         glib.timeout_add(2_500, self.periodic)
 
-    def periodic(self) -> None:
+    def _quit(self) -> None:
+        self.log.info("Bye bye!")
+        gtk.main_quit()
+
+    def _get_database(self) -> Database:
+        """Get the Database instance for the calling thread."""
+        try:
+            return self.local.db
+        except AttributeError:
+            db = Database()
+            self.local.db = db
+            return db
+
+    def _load_models(self) -> None:
+        """Fill the TreeModels with data from the database."""
+        db: Database = self._get_database()
+
+        feeds: Final[list[Feed]] = db.feed_get_all()
+        ftitles: dict[int, str] = {}
+
+        self.feed_store.clear()
+
+        for f in feeds:
+            ftitles[f.fid] = f.title
+            fiter = self.feed_store.append()
+            self.feed_store.set(
+                fiter,
+                (0, 1, 2, 3),
+                (f.fid,
+                 f.title,
+                 f.last_refresh.strftime(common.TIME_FMT),
+                 0),
+            )
+
+        episodes: Final[list[Episode]] = db.episode_get_all()
+        self.episode_store.clear()
+
+        for e in episodes:
+            e_iter = self.episode_store.append()
+            self.episode_store.set(
+                e_iter,
+                (0, 1, 2, 3, 4, 5, 6),
+                (
+                    e.epid,
+                    ftitles[e.feed_id],
+                    e.number,
+                    e.published.strftime(common.TIME_FMT),
+                    e.title,
+                    "??:??:??",
+                    fmt_pos(e.cur_pos),
+                ),
+            )
+
+    def periodic(self) -> bool:
         """Perform routine periodic things."""
-        pass
+        self.log.debug("Do periodic stuff.")
+        return True
+
+
+def fmt_pos(p: int) -> str:
+    """Format the argument p as a playback position, i.e. minutes and seconds."""
+    hours: int = 0
+    minutes: int = 0
+    seconds: int = p
+
+    if seconds >= 3600:
+        hours, seconds = divmod(seconds, 3600)
+
+    if seconds >= 60:
+        minutes, seconds = divmod(seconds, 60)
+
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+
+def main() -> None:
+    """Display the GUI and run the gtk mainloop"""
+    mw = GUI()
+    mw.log.debug("Let's go")
+    gtk.main()
+
+
+if __name__ == "__main__":
+    main()
 
 
 # Local Variables: #
