@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-25 19:39:09 krylon>
+# Time-stamp: <2024-03-26 14:46:36 krylon>
 #
 # /data/code/python/cephalopod/database.py
 # created on 15. 03. 2024
@@ -326,8 +326,8 @@ class Database:
             e = Episode(
                 epid=row[0],
                 feed_id=row[1],
-                number=row[2],
-                title=row[3],
+                title=row[2],
+                number=row[3],
                 url=row[4],
                 published=datetime.fromtimestamp(row[5]),
                 link=row[6],
