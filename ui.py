@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Time-stamp: <2024-03-25 19:57:02 krylon>
+# Time-stamp: <2024-03-26 14:36:11 krylon>
 #
 # /data/code/python/cephalopod/ui.py
 # created on 23. 03. 2024
@@ -207,6 +207,8 @@ class GUI:  # pylint: disable-msg=R0902,R0903
 
         episodes: Final[list[Episode]] = db.episode_get_all()
         self.episode_store.clear()
+        self.log.debug("Add %d episodes to episode_store",
+                       len(episodes))
 
         for e in episodes:
             e_iter = self.episode_store.append()
