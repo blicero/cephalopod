@@ -164,16 +164,18 @@ class GUI:  # pylint: disable-msg=R0902,R0903
 
         # Register signal handlers
 
-        self.win.connect("destroy", self._quit)
-        self.fm_quit_item.connect("activate", self._quit)
+        self.win.connect("destroy", self.quit)
+        self.fm_quit_item.connect("activate", self.quit)
 
         glib.timeout_add(2_500, self.periodic)
+        glib.timeout_add(50, self.load_models)
 
-    def _quit(self) -> None:
+    def quit(self, _whatever) -> None:
         self.log.info("Bye bye!")
+        self.win.destroy()
         gtk.main_quit()
 
-    def _get_database(self) -> Database:
+    def get_database(self) -> Database:
         """Get the Database instance for the calling thread."""
         try:
             return self.local.db
@@ -182,9 +184,9 @@ class GUI:  # pylint: disable-msg=R0902,R0903
             self.local.db = db
             return db
 
-    def _load_models(self) -> None:
+    def load_models(self) -> None:
         """Fill the TreeModels with data from the database."""
-        db: Database = self._get_database()
+        db: Database = self.get_database()
 
         feeds: Final[list[Feed]] = db.feed_get_all()
         ftitles: dict[int, str] = {}
